@@ -131,7 +131,7 @@ const day2: DayLayout = {
   parkingBlocks: [
     {
       rows: [
-        ["nancul_farm78", "d_d_o_s_plants"],
+        ["nancul_farm78+okinawa.hiro0727", "d_d_o_s_plants"],
         ["cafe.green09", "chiisana_tanikuyasan"],
       ],
     },

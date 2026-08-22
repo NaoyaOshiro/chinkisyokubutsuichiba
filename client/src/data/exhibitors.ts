@@ -512,4 +512,14 @@ export const exhibitors: Exhibitor[] = [
     images: ["1.jpg", "2.jpg", "3.jpg", "4.jpg"],
     kitchen: false,
   },
+  {
+    name: "okinawa.hiro0727",
+    instagram: "okinawa.hiro0727",
+    description: "主にアガベ、パキポディウム、ユーフォルビアの実生や現地球を中心に栽培しており、特にチタノタBlack&Bullに力を入れててカッコいいフォルムの株を提供出来るよう日々精進しております！\nまだイベントには不慣れなところもありますが今後ともよろしくお願いします🙇",
+    days: [2],
+    slug: "okinawa.hiro0727",
+    icon: "icon.jpg",
+    images: ["1.jpg", "2.jpg", "3.jpg", "4.jpg", "5.jpg", "6.jpg"],
+    kitchen: false,
+  },
 ];
