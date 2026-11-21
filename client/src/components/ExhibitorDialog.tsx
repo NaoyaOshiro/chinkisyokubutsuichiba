@@ -1,13 +1,15 @@
 /**
  * 出店業者の詳細ダイアログ。
  * 出店紹介の一覧カードと、ブースマップの区画の両方から同じものを開く。
+ * 画像パスと日程バッジは表示中の開催回（useEvent）から組む。
  */
 import { Instagram } from "lucide-react";
-import type { Exhibitor } from "@/data/exhibitors";
+import type { Exhibitor } from "@/data/events/types";
+import { useEvent } from "@/contexts/EventContext";
 import { trackInstagramClick } from "@/lib/analytics";
 import {
-  DAY1_COLOR,
-  DAY2_COLOR,
+  attendingDays,
+  dayColor,
   iconSrc,
   instagramUrl,
   noImage,
@@ -42,10 +44,12 @@ export default function ExhibitorDialog({
 }
 
 function Body({ exhibitor }: { exhibitor: Exhibitor }) {
-  const images = productImages(exhibitor);
-  const icon = iconSrc(exhibitor);
+  const { event } = useEvent();
+  const images = productImages(exhibitor, event.imageDir);
+  const icon = iconSrc(exhibitor, event.imageDir);
   const igUrl = instagramUrl(exhibitor);
   const igHandle = exhibitor.instagram ? `@${exhibitor.instagram}` : "";
+  const days = attendingDays(exhibitor, event.days);
 
   // 最後にアイコン画像も見せる。商品画像が無い場合は no_image を出さずアイコン1枚にする。
   const modalImages = icon
@@ -92,24 +96,19 @@ function Body({ exhibitor }: { exhibitor: Exhibitor }) {
         <ExhibitorCarousel images={modalImages} size="modal" />
 
         <div className="p-4">
-          <div className="flex flex-wrap gap-1.5 mb-3">
-            {exhibitor.days.includes(1) && (
-              <Badge
-                className="text-white border-transparent text-xs font-bold px-2.5 py-0.5 rounded-full"
-                style={{ backgroundColor: DAY1_COLOR }}
-              >
-                8月29日（土）
-              </Badge>
-            )}
-            {exhibitor.days.includes(2) && (
-              <Badge
-                className="text-white border-transparent text-xs font-bold px-2.5 py-0.5 rounded-full"
-                style={{ backgroundColor: DAY2_COLOR }}
-              >
-                8月30日（日）
-              </Badge>
-            )}
-          </div>
+          {days.length > 0 && (
+            <div className="flex flex-wrap gap-1.5 mb-3">
+              {days.map((d) => (
+                <Badge
+                  key={d.id}
+                  className="text-white border-transparent text-xs font-bold px-2.5 py-0.5 rounded-full"
+                  style={{ backgroundColor: dayColor(d.id) }}
+                >
+                  {d.long}
+                </Badge>
+              ))}
+            </div>
+          )}
           {exhibitor.description && (
             <p className="text-sm text-white/70 leading-relaxed mb-4 whitespace-pre-line">
               {exhibitor.description}

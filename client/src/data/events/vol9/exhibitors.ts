@@ -1,25 +1,9 @@
+// vol9（BOTANI CARNIVAL）の出店業者データ。
 // このファイルは tmp/出店者情報.csv と tmp/出店者情報（画像）/ から生成しています。
 // 再生成すると手動の編集は失われます。
-// 画像は client/public/images/exhibitors/<slug>/ 配下（icon.* と 1.*,2.*,... ）。
-
-export interface Exhibitor {
-  /** 屋号（未登録の場合はInstagramハンドルを流用） */
-  name: string;
-  /** Instagramハンドル（@なし）。null ならリンクなし */
-  instagram: string | null;
-  /** 紹介文 */
-  description: string;
-  /** 出店日（1 = 8/29土, 2 = 8/30日） */
-  days: number[];
-  /** 画像フォルダ名（images/exhibitors/<slug>/）。null なら画像なし */
-  slug: string | null;
-  /** アイコン画像ファイル名（例: icon.jpg）。null なら no_image */
-  icon: string | null;
-  /** 商品画像ファイル名の配列（例: ["1.jpg","2.jpg"]）。空なら no_image */
-  images: string[];
-  /** キッチンカーかどうか（CSVの【キッチンカー】ブロックに載っている） */
-  kitchen: boolean;
-}
+// 画像は client/public/images/vol9/exhibitors/<slug>/ 配下（icon.* と 1.*,2.*,... ）。
+// 型（Exhibitor）は開催回で共通なので @/data/events/types から読み込む。
+import type { Exhibitor } from "@/data/events/types";
 
 export const exhibitors: Exhibitor[] = [
   {

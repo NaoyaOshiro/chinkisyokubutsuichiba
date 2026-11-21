@@ -2,32 +2,44 @@
  * EventInfoSection — イベント詳細情報
  * Design: エディトリアル — タイポグラフィ主役のミニマル構成。
  * 大きな日付見出し + 定義リスト。装飾（バンティング・葉・色カード）は持たない。
- * SAT/SUN の色は出店業者一覧の日程フィルタ（緑=8/29 / 赤=8/30）と揃えている。
+ * SAT/SUN の色は出店業者一覧の日程フィルタと揃えている（index.css の --day-N）。
+ *
+ * 文言はすべて表示中の開催回（useEvent）から受け取る。
+ * 行の順番は 時間 → 場所 → details（入場・グルメなど）で固定。
  */
 import { MapPin } from "lucide-react";
 import { asset } from "@/lib/asset";
+import { useEvent } from "@/contexts/EventContext";
+import { dayColor } from "@/lib/exhibitor";
+import type { EventDetail } from "@/data/events/types";
 import { Button } from "@/components/ui/button";
 import SectionHeading from "@/components/SectionHeading";
 
 const INK = "oklch(0.18 0.05 145)"; // 見出し・本文の濃緑
 const MUTED = "oklch(0.50 0.05 145)"; // 補足テキスト
 const LINE = "oklch(0.88 0.04 85)"; // 罫線
-// 実体は index.css の日程カラートークン。出店業者フィルタ・ブース配置図と共通。
-const DAY1_COLOR = "var(--day-1)"; // 土 = 緑
-const DAY2_COLOR = "var(--day-2)"; // 日 = 赤
 
-// 会場のGoogleマップ（共有リンク）
-const MAP_URL = "https://maps.app.goo.gl/8soxNcdA9EZiwg8H6";
-
-// 定義リストの行データ。mapUrl があれば「マップで開く」ボタンを添える。
-const details = [
-  { label: "時間", value: "11:00 – 16:00", note: "両日共通" },
-  { label: "場所", value: "西原さわふじ広場", note: "西原さわふじマルシェ", mapUrl: MAP_URL },
-  { label: "入場", value: "無料", note: "どなたでもご来場いただけます" },
-  { label: "グルメ", value: "キッチンカー出店", note: "フード・ドリンク・スイーツ" },
-] as { label: string; value: string; note: string; mapUrl?: string }[];
+type Row = EventDetail & { mapUrl?: string | null };
 
 export default function EventInfoSection() {
+  const { event } = useEvent();
+
+  // 定義リストの行。mapUrl があれば「マップで開く」ボタンを添える。
+  const rows: Row[] = [
+    ...(event.hours ? [{ label: "時間", value: event.hours.value, note: event.hours.note }] : []),
+    ...(event.venue
+      ? [
+          {
+            label: "場所",
+            value: event.venue.name,
+            note: event.venue.note,
+            mapUrl: event.venue.mapUrl,
+          },
+        ]
+      : []),
+    ...event.details,
+  ];
+
   return (
     <section
       id="event-info"
@@ -37,98 +49,143 @@ export default function EventInfoSection() {
       <div className="max-w-3xl mx-auto">
         <SectionHeading overline="Event Info" title="イベント情報" />
 
-        {/* Date — 大きなタイポグラフィ */}
+        {/* Date — 大きなタイポグラフィ。日程未定なら dateTbd を出す。 */}
         <div className="mb-12 reveal">
-          <p className="font-display text-sm font-bold tracking-[0.3em] mb-2" style={{ color: MUTED }}>
-            2026
-          </p>
-          <p
-            className="font-display font-extrabold leading-none tracking-tight tabular-nums"
-            style={{ color: INK, fontSize: "clamp(2.75rem, 9vw, 5.5rem)" }}
-          >
-            8.29
-            <span className="text-[0.35em] font-bold align-middle ml-2 mr-4" style={{ color: DAY1_COLOR }}>
-              SAT
-            </span>
-            <span style={{ color: LINE }}>—</span>
-            <span className="ml-4">8.30</span>
-            <span className="text-[0.35em] font-bold align-middle ml-2" style={{ color: DAY2_COLOR }}>
-              SUN
-            </span>
-          </p>
+          {event.year && (
+            <p
+              className="font-display text-sm font-bold tracking-[0.3em] mb-2"
+              style={{ color: MUTED }}
+            >
+              {event.year}
+            </p>
+          )}
+          {event.days.length > 0 ? (
+            <p
+              className="font-display font-extrabold leading-none tracking-tight tabular-nums"
+              style={{ color: INK, fontSize: "clamp(2.75rem, 9vw, 5.5rem)" }}
+            >
+              {event.days.map((d, i) => (
+                <span key={d.id}>
+                  {/* 2日目以降は前の日付とダッシュでつなぐ */}
+                  {i > 0 && (
+                    <span className="mx-4" style={{ color: LINE }}>
+                      —
+                    </span>
+                  )}
+                  {d.display}
+                  <span
+                    className="text-[0.35em] font-bold align-middle ml-2"
+                    style={{ color: dayColor(d.id) }}
+                  >
+                    {d.weekday}
+                  </span>
+                </span>
+              ))}
+            </p>
+          ) : (
+            event.dateTbd && (
+              <p
+                className="font-display font-extrabold leading-none tracking-tight"
+                style={{ color: INK, fontSize: "clamp(1.75rem, 6vw, 3rem)" }}
+              >
+                {event.dateTbd}
+              </p>
+            )
+          )}
         </div>
+
+        {/* お知らせ（準備中の案内など）。決まったら notice を null にする。 */}
+        {event.notice && (
+          <div
+            className="mb-12 rounded-2xl border px-5 py-4 text-sm leading-relaxed reveal"
+            style={{ borderColor: LINE, backgroundColor: "oklch(0.99 0.01 85)", color: INK }}
+          >
+            {event.notice}
+          </div>
+        )}
 
         {/* Lead copy */}
-        <div className="mb-12 reveal">
-          <p
-            className="text-lg md:text-xl leading-relaxed mb-4"
-            style={{ fontFamily: "'Noto Serif JP', serif", color: INK }}
-          >
-            今年の珍奇植物市場は、いつもとはひと味違う。
-            <br />
-            会場全体が植物たちのカーニバルに──
-          </p>
-          <p className="text-sm leading-relaxed max-w-prose" style={{ color: MUTED }}>
-            色鮮やかな装飾、フォトスポット、そして集まる珍奇植物たち。
-            見て、出会って、お気に入りの1株を探す2日間。
-            初心者の方からコレクターまで楽しめる、8月最後の植物イベントです。
-          </p>
-        </div>
+        {event.lead && (
+          <div className="mb-12 reveal">
+            <p
+              className="text-lg md:text-xl leading-relaxed mb-4"
+              style={{ fontFamily: "'Noto Serif JP', serif", color: INK }}
+            >
+              {event.lead.heading.map((line, i) => (
+                <span key={i}>
+                  {i > 0 && <br />}
+                  {line}
+                </span>
+              ))}
+            </p>
+            <p className="text-sm leading-relaxed max-w-prose" style={{ color: MUTED }}>
+              {event.lead.body}
+            </p>
+          </div>
+        )}
 
         {/* Details — 定義リスト */}
-        <dl className="reveal">
-          {details.map((d) => (
-            <div
-              key={d.label}
-              className="grid grid-cols-[5rem_1fr] items-baseline gap-4 py-4 border-t"
-              style={{ borderColor: LINE }}
-            >
-              <dt className="text-xs font-bold tracking-widest" style={{ color: MUTED }}>
-                {d.label}
-              </dt>
-              <dd>
-                <div className="flex flex-wrap items-baseline gap-x-3">
-                  <span className="text-base md:text-lg font-bold" style={{ color: INK }}>
-                    {d.value}
-                  </span>
-                  <span className="text-xs" style={{ color: MUTED }}>
-                    {d.note}
-                  </span>
-                </div>
-                {d.mapUrl && (
-                  <Button
-                    asChild
-                    variant="outline"
-                    size="sm"
-                    className="mt-3 h-auto gap-1.5 rounded-full bg-transparent px-4 py-1.5 text-xs font-bold"
-                    style={{ borderColor: DAY1_COLOR, color: DAY1_COLOR }}
-                  >
-                    <a href={d.mapUrl} target="_blank" rel="noopener noreferrer">
-                      <MapPin className="size-3.5" />
-                      マップで開く
-                    </a>
-                  </Button>
-                )}
-              </dd>
-            </div>
-          ))}
-          <div className="border-t" style={{ borderColor: LINE }} />
-        </dl>
+        {rows.length > 0 && (
+          <dl className="reveal">
+            {rows.map((d) => (
+              <div
+                key={d.label}
+                className="grid grid-cols-[5rem_1fr] items-baseline gap-4 py-4 border-t"
+                style={{ borderColor: LINE }}
+              >
+                <dt className="text-xs font-bold tracking-widest" style={{ color: MUTED }}>
+                  {d.label}
+                </dt>
+                <dd>
+                  <div className="flex flex-wrap items-baseline gap-x-3">
+                    <span className="text-base md:text-lg font-bold" style={{ color: INK }}>
+                      {d.value}
+                    </span>
+                    {d.note && (
+                      <span className="text-xs" style={{ color: MUTED }}>
+                        {d.note}
+                      </span>
+                    )}
+                  </div>
+                  {d.mapUrl && (
+                    <Button
+                      asChild
+                      variant="outline"
+                      size="sm"
+                      className="mt-3 h-auto gap-1.5 rounded-full bg-transparent px-4 py-1.5 text-xs font-bold"
+                      style={{ borderColor: dayColor(1), color: dayColor(1) }}
+                    >
+                      <a href={d.mapUrl} target="_blank" rel="noopener noreferrer">
+                        <MapPin className="size-3.5" />
+                        マップで開く
+                      </a>
+                    </Button>
+                  )}
+                </dd>
+              </div>
+            ))}
+            <div className="border-t" style={{ borderColor: LINE }} />
+          </dl>
+        )}
 
-        {/* Kitchen car — 控えめな写真バナー */}
-        <figure className="mt-12 reveal">
-          <div className="rounded-2xl overflow-hidden">
-            <img
-              src={asset("images/kitchen-car.webp")}
-              alt="キッチンカー"
-              className="w-full aspect-[21/9] object-cover"
-              loading="lazy"
-            />
-          </div>
-          <figcaption className="mt-2 text-xs" style={{ color: MUTED }}>
-            キッチンカーも出店。植物と一緒にグルメもお楽しみください。
-          </figcaption>
-        </figure>
+        {/* 写真バナー（キッチンカーなど）— 控えめに添える */}
+        {event.photo && (
+          <figure className="mt-12 reveal">
+            <div className="rounded-2xl overflow-hidden">
+              <img
+                src={asset(`images/${event.imageDir}/${event.photo.file}`)}
+                alt={event.photo.alt}
+                className="w-full aspect-[21/9] object-cover"
+                loading="lazy"
+              />
+            </div>
+            {event.photo.caption && (
+              <figcaption className="mt-2 text-xs" style={{ color: MUTED }}>
+                {event.photo.caption}
+              </figcaption>
+            )}
+          </figure>
+        )}
       </div>
 
       {/* Wave divider */}

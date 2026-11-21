@@ -1,19 +1,18 @@
 /**
  * ExhibitorsSection — 出店業者紹介（日程フィルタ付き単一リスト）
- * データは client/src/data/exhibitors.ts（CSV由来）を参照。
+ * データは表示中の開催回（useEvent）から受け取る。
  * カード: 出店日バッジ・アイコン・屋号・Instagramリンク・商品画像カルーセル・説明文
  * タップ: カード→詳細ダイアログ / Instagramアイコン→外部遷移
  *
  * ヘルパー・カルーセル・ダイアログはブースマップと共用（@/lib/exhibitor ほか）。
  */
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { ChevronRight, Instagram } from "lucide-react";
-import { exhibitors, type Exhibitor } from "@/data/exhibitors";
+import type { Exhibitor } from "@/data/events/types";
+import { useEvent } from "@/contexts/EventContext";
 import {
-  BOTH_COLOR,
-  DAY1_COLOR,
-  DAY2_COLOR,
   dayBadge,
+  dayColor,
   iconSrc,
   instagramUrl,
   noImage,
@@ -29,25 +28,22 @@ import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-// 出店日が未確定の業者は非表示。両日出店の業者も1枚だけ描画し、
-// 日程はカード上のバッジで示す（同じカードを2度出さないための単一リスト）。
-const allExhibitors = exhibitors.filter((e) => e.days.length > 0);
-
-// フィルタ定義。すべて / 各日 の3種。
-// short はモバイル用。3つ並べると375px幅で曜日カッコが入りきらないため。
-const FILTERS = [
-  { id: "all", label: "すべて", short: "すべて", color: "oklch(0.30 0.06 145)", match: () => true },
-  { id: "day1", label: "8/29（土）", short: "8/29", color: DAY1_COLOR, match: (e: Exhibitor) => e.days.includes(1) },
-  { id: "day2", label: "8/30（日）", short: "8/30", color: DAY2_COLOR, match: (e: Exhibitor) => e.days.includes(2) },
-] as const;
-
-type FilterId = (typeof FILTERS)[number]["id"];
+/** 日程フィルタ1つぶん。「すべて」＋開催日ごとに1つ作る。 */
+interface Filter {
+  id: string;
+  label: string;
+  /** モバイル用の短いラベル。3つ並べると375px幅で曜日カッコが入りきらないため */
+  short: string;
+  color: string;
+  match: (e: Exhibitor) => boolean;
+}
 
 function ExhibitorCard({ exhibitor }: { exhibitor: Exhibitor }) {
-  const images = productImages(exhibitor);
-  const icon = iconSrc(exhibitor);
+  const { event } = useEvent();
+  const images = productImages(exhibitor, event.imageDir);
+  const icon = iconSrc(exhibitor, event.imageDir);
   const igUrl = instagramUrl(exhibitor);
-  const badge = dayBadge(exhibitor);
+  const badge = dayBadge(exhibitor, event.days);
   const [open, setOpen] = useState(false);
 
   return (
@@ -102,18 +98,20 @@ function ExhibitorCard({ exhibitor }: { exhibitor: Exhibitor }) {
           <div className="font-bold text-[11px] leading-tight text-white truncate flex-1">
             {exhibitor.name}
           </div>
-          <Badge
-            className="flex-shrink-0 text-white border-transparent text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm pointer-events-none"
-            style={{ backgroundColor: badge.color }}
-          >
-            {badge.text}
-          </Badge>
+          {badge.text && (
+            <Badge
+              className="flex-shrink-0 text-white border-transparent text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm pointer-events-none"
+              style={{ backgroundColor: badge.color }}
+            >
+              {badge.text}
+            </Badge>
+          )}
         </div>
 
         {/* 3. 説明文（スマホ1行 / sm以上は2行省略） */}
         <div className="px-3 py-0.5">
           <p className="text-xs text-white/60 leading-relaxed line-clamp-1 sm:line-clamp-2">
-            {exhibitor.description || " "}
+            {exhibitor.description || " "}
           </p>
         </div>
 
@@ -227,7 +225,7 @@ function SkeletonGrid({ count }: { count: number }) {
 
 /**
  * 「キッチンカー」「出店業者」の区切り。
- * カード側にバッジを足すと49枚すべてが煩雑になるため、種別は並びで示す。
+ * カード側にバッジを足すと全カードが煩雑になるため、種別は並びで示す。
  * データの並びは既にキッチンカーが先頭（CSVの順）なので、順序は変えていない。
  * 絞り込みで該当が無い日は、見出しごと出さない。
  */
@@ -254,7 +252,37 @@ function Group({ overline, list }: { overline: string; list: Exhibitor[] }) {
 const SKELETON_MS = 400;
 
 export default function ExhibitorsSection() {
-  const [filter, setFilter] = useState<FilterId>("all");
+  const { event } = useEvent();
+
+  // 出店日が未確定の業者は非表示。全日出店の業者も1枚だけ描画し、
+  // 日程はカード上のバッジで示す（同じカードを2度出さないための単一リスト）。
+  const allExhibitors = useMemo(
+    () => event.exhibitors.filter((e) => e.days.length > 0),
+    [event]
+  );
+
+  // フィルタは開催日から組む。1日開催なら「すべて」だけになるのでタブは出さない。
+  const filters = useMemo<Filter[]>(
+    () => [
+      {
+        id: "all",
+        label: "すべて",
+        short: "すべて",
+        color: "oklch(0.30 0.06 145)",
+        match: () => true,
+      },
+      ...event.days.map((d) => ({
+        id: `day${d.id}`,
+        label: d.label,
+        short: d.short,
+        color: dayColor(d.id),
+        match: (e: Exhibitor) => e.days.includes(d.id),
+      })),
+    ],
+    [event]
+  );
+
+  const [filter, setFilter] = useState<string>("all");
   // タブを押した直後だけ骨組みを出し、切り替わったことを知覚させる。
   // データはローカルなので実際の待ち時間は無く、演出目的の遅延。
   const [pending, setPending] = useState(false);
@@ -267,9 +295,12 @@ export default function ExhibitorsSection() {
 
   const handleFilterChange = (value: string) => {
     if (value === filter) return;
-    setFilter(value as FilterId);
+    setFilter(value);
     setPending(true);
   };
+
+  // 出店者が未確定の回ではセクションごと出さない（フックの後で判定する）。
+  if (allExhibitors.length === 0) return null;
 
   return (
     <section id="exhibitors" className="py-24 px-4 relative overflow-hidden" style={{ backgroundColor: "oklch(0.96 0.03 85)" }}>
@@ -284,31 +315,33 @@ export default function ExhibitorsSection() {
           全{allExhibitors.length}の出店業者が参加予定です。
         </SectionHeading>
 
-        {/* 日程フィルタ + 一覧（両日出店の業者も1枚のみ描画） */}
+        {/* 日程フィルタ + 一覧（全日出店の業者も1枚のみ描画） */}
         <Tabs value={filter} onValueChange={handleFilterChange} className="gap-0">
           {/* 見出しが左寄せになったので、フィルタも左に揃える */}
-          <TabsList className="mr-auto mb-8 h-auto gap-1 rounded-full bg-[oklch(0.91_0.03_85)] p-1.5 reveal">
-            {FILTERS.map((f) => (
-              <TabsTrigger
-                key={f.id}
-                value={f.id}
-                className="rounded-full px-3 py-2 text-sm font-bold text-[oklch(0.40_0.05_145)] transition-colors sm:px-5 data-[state=active]:bg-[var(--tab-active)] data-[state=active]:text-white data-[state=active]:shadow-md"
-                style={{ "--tab-active": f.color } as React.CSSProperties}
-              >
-                <span className="sm:hidden">{f.short}</span>
-                <span className="hidden sm:inline">{f.label}</span>
-              </TabsTrigger>
-            ))}
-          </TabsList>
+          {filters.length > 2 && (
+            <TabsList className="mr-auto mb-8 h-auto gap-1 rounded-full bg-[oklch(0.91_0.03_85)] p-1.5 reveal">
+              {filters.map((f) => (
+                <TabsTrigger
+                  key={f.id}
+                  value={f.id}
+                  className="rounded-full px-3 py-2 text-sm font-bold text-[oklch(0.40_0.05_145)] transition-colors sm:px-5 data-[state=active]:bg-[var(--tab-active)] data-[state=active]:text-white data-[state=active]:shadow-md"
+                  style={{ "--tab-active": f.color } as React.CSSProperties}
+                >
+                  <span className="sm:hidden">{f.short}</span>
+                  <span className="hidden sm:inline">{f.label}</span>
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          )}
 
           {/*
-            パネルに reveal は付けない。Home.tsx の IntersectionObserver は
+            パネルに reveal は付けない。EventPage.tsx の IntersectionObserver は
             マウント時に一度 .reveal を集めるだけなので、タブ切替で後から
-            マウントされるパネルは永久に非表示のままになる。加えて43枚の
+            マウントされるパネルは永久に非表示のままになる。加えて数十枚の
             グリッドは背が高く、threshold:0.1 を満たしにくい。
             非アクティブなパネルは Radix が未マウントに保つため描画は1つ分。
           */}
-          {FILTERS.map((f) => {
+          {filters.map((f) => {
             const list = allExhibitors.filter(f.match);
             const cars = list.filter((e) => e.kitchen);
             const shops = list.filter((e) => !e.kitchen);

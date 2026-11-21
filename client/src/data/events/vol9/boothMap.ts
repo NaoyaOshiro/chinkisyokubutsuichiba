@@ -1,43 +1,23 @@
 /**
- * ブース配置図のデータ。
+ * vol9（BOTANI CARNIVAL）のブース配置図データ。
  *
  * 【編集のしかた】
  * 区画の移動・入れ替え・追加・削除は、この配列の並びを変えるだけで反映される。
  * 座標は持たないので、1つ動かしても他の区画を直す必要はない。
  *
- * - handle は Instagram のハンドル（@は不要）。exhibitors.ts の instagram と
- *   一致すると屋号・アイコン・詳細ダイアログが自動でつながる。
+ * - handle は Instagram のハンドル（@は不要）。同じ vol の exhibitors.ts の
+ *   instagram と一致すると屋号・アイコン・詳細ダイアログが自動でつながる。
  * - "" は空き区画。
  * - 1区画を2者で使う場合は "a+b" のように + でつなぐ。
  * - 1行に区画を1つだけ書くと、その区画は横2つ分（全幅）になる。
  *
+ * 日程名（「8/29（土）」など）はこのファイルではなく vol9/index.ts の days が持つ。
  * 設備（倉庫・W.C.・建物）は両日共通なので dayLayouts の外に置く。
  */
-
-export interface BoothBlock {
-  /** 2列で並べる。1行 = [左, 右] */
-  rows: string[][];
-}
-
-export interface DayLayout {
-  /** 1 = 8/29土, 2 = 8/30日 */
-  id: 1 | 2;
-  label: string;
-  short: string;
-  /** テント内のブース。上から順に並ぶ。 */
-  tentBlocks: BoothBlock[];
-  /** 駐車場エリアのテント内ブース。左から横に並ぶ。 */
-  parkingBlocks: BoothBlock[];
-  /** キッチンカーエリア（横一列）。数を増減すると幅は自動で割り振られる。 */
-  kitchenCarRow: string[];
-  /** 駐車場テント右端の縦帯。不要なら null。 */
-  kitchenCarSide: string | null;
-}
+import type { BoothMapData, DayLayout, Facility } from "@/data/events/types";
 
 const day1: DayLayout = {
   id: 1,
-  label: "8/29（土）",
-  short: "8/29",
   tentBlocks: [
     { rows: [["andesfarm.okinawa", "kiri6590"]] },
     {
@@ -92,8 +72,6 @@ const day1: DayLayout = {
 
 const day2: DayLayout = {
   id: 2,
-  label: "8/30（日）",
-  short: "8/30",
   tentBlocks: [
     { rows: [["andesfarm.okinawa", "kiri6590"]] },
     {
@@ -147,30 +125,24 @@ const day2: DayLayout = {
   kitchenCarSide: null,
 };
 
-export const dayLayouts: DayLayout[] = [day1, day2];
-
-/** 会場名。図の一番上に帯で出す。 */
-export const venueLabel = "さわふじ広場";
-
-/** 設備・建物などブース以外の区画。size は縦方向の比率。両日共通。 */
-export interface Facility {
-  label: string;
-  size: number;
-  tone: "plain" | "cream" | "dark";
-  /** 補足ラベル（「従業員通路」など） */
-  note?: string;
-}
-
 /** 会場左側（設備）。 */
-export const leftFacilities: Facility[] = [
+const leftFacilities: Facility[] = [
   { label: "倉庫", size: 1, tone: "plain" },
   { label: "W.C.", size: 2, tone: "cream", note: "従業員通路" },
   { label: "うんたま市場", size: 3, tone: "plain" },
 ];
 
 /** 会場右側（建物）。 */
-export const rightFacilities: Facility[] = [
+const rightFacilities: Facility[] = [
   { label: "西原劇場", size: 3, tone: "plain" },
   { label: "キッチンスタジオ", size: 2, tone: "plain" },
   { label: "飲食店", size: 2, tone: "plain" },
 ];
+
+export const boothMap: BoothMapData = {
+  venueLabel: "さわふじ広場",
+  monumentLabel: "モニュメント",
+  dayLayouts: [day1, day2],
+  leftFacilities,
+  rightFacilities,
+};

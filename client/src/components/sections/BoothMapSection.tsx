@@ -1,26 +1,18 @@
 /**
  * BoothMapSection — 出展ブース配置図
  *
- * 配置は client/src/data/boothMap.ts のデータから描画する。
- * 画像ではなくCSSレイアウトなので、区画の移動は配列の並び替えだけで済み、
- * 屋号・アイコン・詳細は exhibitors.ts から自動で引ける。
+ * 配置は表示中の開催回の boothMap データ（client/src/data/events/<slug>/boothMap.ts）
+ * から描画する。画像ではなくCSSレイアウトなので、区画の移動は配列の並び替えだけで
+ * 済み、屋号・アイコン・詳細は同じ回の exhibitors.ts から自動で引ける。
  *
  * Design: 濃緑のセクションに「1枚の会場図」を敷く構成。
  * 区画は白いチップとして浮かせ、設備は沈ませて主役（出店ブース）を立たせる。
  */
 import React, { useState } from "react";
-import type { Exhibitor } from "@/data/exhibitors";
-import { findByHandle, iconSrc, noImage } from "@/lib/exhibitor";
+import type { BoothBlock, BoothMapData, DayLayout, Exhibitor, Facility } from "@/data/events/types";
+import { useEvent } from "@/contexts/EventContext";
+import { iconSrc, noImage } from "@/lib/exhibitor";
 import { trackSelectExhibitor } from "@/lib/analytics";
-import {
-  dayLayouts,
-  leftFacilities,
-  rightFacilities,
-  venueLabel,
-  type BoothBlock,
-  type DayLayout,
-  type Facility,
-} from "@/data/boothMap";
 import SectionHeading from "@/components/SectionHeading";
 import ExhibitorDialog from "@/components/ExhibitorDialog";
 import BoothMapDecor from "@/components/sections/BoothMapDecor";
@@ -37,6 +29,7 @@ function Occupant({
   handle: string;
   onOpen: (e: Exhibitor) => void;
 }) {
+  const { event, findByHandle } = useEvent();
   const exhibitor = findByHandle(handle);
   // スマホはアイコンの下に屋号（縦積み）、sm以上は横並び。
   const base =
@@ -45,7 +38,7 @@ function Occupant({
   const inner = (
     <>
       <img
-        src={exhibitor ? (iconSrc(exhibitor) ?? noImage) : noImage}
+        src={exhibitor ? (iconSrc(exhibitor, event.imageDir) ?? noImage) : noImage}
         alt=""
         loading="lazy"
         decoding="async"
@@ -119,11 +112,12 @@ function Booth({
 
 /** 駐車場エリア右端の縦長区画（キッチンカー1台分）。 */
 function SideStrip({ handle, onOpen }: { handle: string; onOpen: (e: Exhibitor) => void }) {
+  const { event, findByHandle } = useEvent();
   const exhibitor = findByHandle(handle);
   const content = (
     <>
       <img
-        src={exhibitor ? (iconSrc(exhibitor) ?? noImage) : noImage}
+        src={exhibitor ? (iconSrc(exhibitor, event.imageDir) ?? noImage) : noImage}
         alt=""
         loading="lazy"
         decoding="async"
@@ -232,7 +226,15 @@ function AreaLabel({ children }: { children: React.ReactNode }) {
 }
 
 /** 1日ぶんの会場図。日程を切り替えても設備・建物は共通。 */
-function MapSheet({ layout, onOpen }: { layout: DayLayout; onOpen: (e: Exhibitor) => void }) {
+function MapSheet({
+  map,
+  layout,
+  onOpen,
+}: {
+  map: BoothMapData;
+  layout: DayLayout;
+  onOpen: (e: Exhibitor) => void;
+}) {
   return (
     /* map-paper は index.css。紙のムラとざらつきを持つ地。 */
     <div className="map-paper relative overflow-x-auto rounded-2xl p-4 shadow-xl sm:p-6">
@@ -243,29 +245,29 @@ function MapSheet({ layout, onOpen }: { layout: DayLayout; onOpen: (e: Exhibitor
           {/* 左: 設備 */}
           {/* スマホでは細く（各10%）。ラベルは縦書きなのでこの幅でも入る。 */}
           <div className="flex w-[10%] flex-col gap-2 sm:w-[13%]">
-            {leftFacilities.map((f) => (
+            {map.leftFacilities.map((f) => (
               <FacilityBox key={f.label} facility={f} />
             ))}
           </div>
 
           {/* 中央: テント */}
           <div className="flex flex-1 flex-col">
-            {/* 会場名。左右は倉庫・西原劇場が上端まで来るので、中央にだけ渡す。 */}
+            {/* 会場名。左右は倉庫・劇場が上端まで来るので、中央にだけ渡す。 */}
             <div className="mb-3">
-              <Landmark>{venueLabel}</Landmark>
+              <Landmark>{map.venueLabel}</Landmark>
             </div>
             {/* 島どうしの間隔＝通路。区画内の gap-1.5 とは別物。 */}
             <div className="flex flex-1 flex-col gap-6">
               {layout.tentBlocks.map((b, i) => (
                 <Block key={i} block={b} onOpen={onOpen} />
               ))}
-              <Landmark>モニュメント</Landmark>
+              {map.monumentLabel && <Landmark>{map.monumentLabel}</Landmark>}
             </div>
           </div>
 
           {/* 右: 建物 */}
           <div className="flex w-[10%] flex-col gap-2 sm:w-[16%]">
-            {rightFacilities.map((f) => (
+            {map.rightFacilities.map((f) => (
               <FacilityBox key={f.label} facility={f} />
             ))}
           </div>
@@ -293,19 +295,21 @@ function MapSheet({ layout, onOpen }: { layout: DayLayout; onOpen: (e: Exhibitor
             </div>
 
             {/* キッチンカーエリア: 横一列 */}
-            <div className="mt-3">
-              <AreaLabel>Kitchen Car</AreaLabel>
-              <div
-                className="grid gap-1.5"
-                style={{
-                  gridTemplateColumns: `repeat(${layout.kitchenCarRow.length}, minmax(0, 1fr))`,
-                }}
-              >
-                {layout.kitchenCarRow.map((h) => (
-                  <Booth key={h} handle={h} onOpen={onOpen} />
-                ))}
+            {layout.kitchenCarRow.length > 0 && (
+              <div className="mt-3">
+                <AreaLabel>Kitchen Car</AreaLabel>
+                <div
+                  className="grid gap-1.5"
+                  style={{
+                    gridTemplateColumns: `repeat(${layout.kitchenCarRow.length}, minmax(0, 1fr))`,
+                  }}
+                >
+                  {layout.kitchenCarRow.map((h) => (
+                    <Booth key={h} handle={h} onOpen={onOpen} />
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
           </div>
         </div>
       </div>
@@ -317,12 +321,17 @@ function MapSheet({ layout, onOpen }: { layout: DayLayout; onOpen: (e: Exhibitor
 }
 
 export default function BoothMapSection() {
+  const { event } = useEvent();
   // マップ全体で1つのダイアログを使い回す（区画ごとに持つと数十個できてしまう）
   const [selected, setSelected] = useState<Exhibitor | null>(null);
   const [open, setOpen] = useState(false);
 
-  // dayId は開いた地図の日程（1 or 2）。どちらの日の配置から開かれたかを計測する。
-  const handleOpen = (e: Exhibitor, dayId: 1 | 2) => {
+  const map = event.boothMap;
+  // 配置図が未確定の回ではセクションごと出さない（EventPage 側でも分岐している）
+  if (!map) return null;
+
+  // dayId は開いた地図の日程。どちらの日の配置から開かれたかを計測する。
+  const handleOpen = (e: Exhibitor, dayId: number) => {
     trackSelectExhibitor({
       name: e.name,
       handle: e.instagram,
@@ -348,21 +357,26 @@ export default function BoothMapSection() {
 
         {/* 日程は並べて出す。スクロールすると2日目が現れる。 */}
         <div className="space-y-14">
-          {dayLayouts.map((d) => (
-            <div key={d.id} className="reveal">
-              {/* 日付の見出し。色は出店紹介のフィルタと同じ日程カラートークン。 */}
-              <div className="mb-4">
-                <span
-                  className="inline-block rounded-full px-4 py-1.5 text-sm font-bold text-white"
-                  style={{ backgroundColor: `var(--day-${d.id})` }}
-                >
-                  {d.label}
-                </span>
-              </div>
+          {map.dayLayouts.map((d) => {
+            const day = event.days.find((x) => x.id === d.id);
+            return (
+              <div key={d.id} className="reveal">
+                {/* 日付の見出し。色は出店紹介のフィルタと同じ日程カラートークン。 */}
+                {day && (
+                  <div className="mb-4">
+                    <span
+                      className="inline-block rounded-full px-4 py-1.5 text-sm font-bold text-white"
+                      style={{ backgroundColor: `var(--day-${d.id})` }}
+                    >
+                      {day.label}
+                    </span>
+                  </div>
+                )}
 
-              <MapSheet layout={d} onOpen={(e) => handleOpen(e, d.id)} />
-            </div>
-          ))}
+                <MapSheet map={map} layout={d} onOpen={(e) => handleOpen(e, d.id)} />
+              </div>
+            );
+          })}
         </div>
       </div>
 

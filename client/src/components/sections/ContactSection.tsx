@@ -1,15 +1,22 @@
 /**
  * ContactSection — お問い合わせ（Instagram DM誘導）
- * Design: エディトリアル — 罫線区切りの行リスト（協賛と同じ文法）。
- * 以前は「プロフィールカード」と「DMボタン」で同じInstagramへの導線が
- * 二重にあったため、行全体をリンクにして1本化する。
+ * Design: エディトリアル — 罫線区切りの行リスト。
+ * 行全体をリンクにして、Instagramへの導線を1本にまとめている。
+ *
+ * 主催者のアカウントは開催回に依らないのでサイト共通設定（site.ts）から。
  */
 import { ArrowUpRight, Instagram } from "lucide-react";
+import { site } from "@/data/site";
+import { useEvent } from "@/contexts/EventContext";
 import SectionHeading from "@/components/SectionHeading";
 
-const IG_URL = "https://www.instagram.com/tanikunchu/";
-
 export default function ContactSection() {
+  const { event } = useEvent();
+  const handle = site.organizerInstagram;
+  const igUrl = `https://www.instagram.com/${handle}/`;
+  // 主催表記はイベント名があればそれ、無ければシリーズ名。
+  const owner = event.name ?? site.name;
+
   return (
     <section
       id="contact"
@@ -25,7 +32,7 @@ export default function ContactSection() {
         <div className="reveal">
           {/* 行全体がリンク。タップ領域を大きく取るため py を厚めに。 */}
           <a
-            href={IG_URL}
+            href={igUrl}
             target="_blank"
             rel="noopener noreferrer"
             className="group flex items-center gap-4 border-t border-white/15 py-6"
@@ -43,10 +50,10 @@ export default function ContactSection() {
 
             <div className="min-w-0 flex-1">
               <div className="text-lg font-bold text-white transition-colors group-hover:text-[oklch(0.80_0.16_85)] md:text-xl">
-                @tanikunchu
+                @{handle}
               </div>
               <div className="mt-1 text-xs text-white/50">
-                BOTANI CARNIVAL 主催者 — InstagramでDMを送る
+                {owner} 主催者 — InstagramでDMを送る
               </div>
             </div>
 

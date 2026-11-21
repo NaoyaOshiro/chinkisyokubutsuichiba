@@ -2,6 +2,8 @@
  * FaqSection — よくある質問
  * Design: エディトリアル — 罫線区切りのアコーディオン（イベント情報の定義リストと同じ文法）。
  * 白カード・Q/Aの丸バッジ・影は持たない。質問文自体が見出しとして機能する。
+ *
+ * 質問は開催回ごとのデータ（EventData.faqs）から。空なら EventPage 側で出さない。
  */
 import {
   Accordion,
@@ -9,6 +11,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import { useEvent } from "@/contexts/EventContext";
 import SectionHeading from "@/components/SectionHeading";
 
 // 背景がジャングルダークなので、文字と罫線は白系に反転する。
@@ -16,41 +19,17 @@ const INK = "#fff";
 const MUTED = "rgba(255,255,255,0.65)";
 const LINE = "rgba(255,255,255,0.15)";
 
-const faqs = [
-  {
-    q: "入場料はかかりますか？",
-    a: "入場は無料です。どなたでもお気軽にご来場いただけます。初めての方も、植物に詳しくない方も大歓迎です！",
-  },
-  {
-    q: "駐車場はありますか？",
-    a: "西原さわふじ広場には駐車場がございます。ただし、混雑が予想されますので、公共交通機関のご利用もご検討ください。詳細は会場の公式情報をご確認ください。",
-  },
-  {
-    q: "雨天の場合はどうなりますか？",
-    a: "小雨の場合は開催予定です。荒天の場合は主催者のInstagram（@tanikunchu）にてお知らせいたします。当日の朝にご確認ください。",
-  },
-  {
-    q: "ペットを連れて入場できますか？",
-    a: "ペット同伴でのご来場は、他のお客様や植物への影響を考慮し、ご遠慮いただいております。ご理解のほどよろしくお願いいたします。",
-  },
-  {
-    q: "購入した植物はどうやって持ち帰ればいいですか？",
-    a: "エコバッグやマイカゴのご持参にご協力ください。会場でご用意できる袋には限りがございます。鉢植えは倒れると土がこぼれてしまうため、底が広くて安定するトートバッグや、浅めのカゴ・段ボール箱がおすすめです。",
-  },
-  {
-    q: "出店に興味があるのですが、どうすればよいですか？",
-    a: "出店のお問い合わせは、主催者のInstagram（@tanikunchu）のDMよりご連絡ください。次回以降のイベントへのご参加についてもお気軽にご相談ください。",
-  },
-];
-
 export default function FaqSection() {
+  const { event } = useEvent();
+  if (event.faqs.length === 0) return null;
+
   return (
     <section id="faq" className="py-24 px-4" style={{ backgroundColor: "oklch(0.18 0.05 145)" }}>
       <div className="max-w-3xl mx-auto">
         <SectionHeading overline="FAQ" title="よくある質問" tone="dark" />
 
         <Accordion type="single" collapsible className="reveal">
-          {faqs.map((faq, i) => (
+          {event.faqs.map((faq, i) => (
             <AccordionItem
               key={i}
               value={`q${i}`}
@@ -68,7 +47,7 @@ export default function FaqSection() {
               </AccordionContent>
             </AccordionItem>
           ))}
-          {/* 最終行の下辺。イベント情報・協賛のリストと同じ閉じ方に揃える。 */}
+          {/* 最終行の下辺。イベント情報のリストと同じ閉じ方に揃える。 */}
           <div className="border-t" style={{ borderColor: LINE }} />
         </Accordion>
       </div>

@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <!-- maximum-scale は付けない。ピンチズームを禁止すると弱視のユーザーが拡大できず WCAG 違反になる。 -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <!-- ファビコン。サイト共通（images/site/）。 -->
+    <link rel="icon" type="image/png" sizes="32x32" href="/images/site/favicon-32.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/images/site/apple-touch-icon.png" />
+
+    <title>珍奇植物市場 Vol.10</title>
+    <meta name="description" content="珍奇植物市場 Vol.10 の特設ページ。日程・会場・出店業者は決まり次第こちらでお知らせします。" />
+    <link rel="canonical" href="https://naoyaoshiro.github.io/chinkisyokubutsuichiba/vol10/" />
+
+    <!--
+      OGP / Twitter Card
+      集客の主経路が Instagram DM・ストーリーズ・LINE のため、シェア時にフライヤーが出ることが重要。
+      そのため開催回ごとに HTML を分けて、meta を静的に持たせている
+      （SPAの中で書き換えてもクローラは読まない）。
+      content の URL は絶対パス必須。Vite は meta タグの中身を書き換えないので直書きする。
+      公開URLを変えるときは client/**/index.html の canonical・og:url・og:image と
+      vite.config.ts の base、client/src/data/site.ts の url を揃えて直すこと。
+    -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="珍奇植物市場" />
+    <meta property="og:title" content="珍奇植物市場 Vol.10" />
+    <meta property="og:description" content="珍奇植物市場 Vol.10 の特設ページ。日程・会場・出店業者は決まり次第こちらでお知らせします。" />
+    <meta property="og:url" content="https://naoyaoshiro.github.io/chinkisyokubutsuichiba/vol10/" />
+    <meta property="og:image" content="https://naoyaoshiro.github.io/chinkisyokubutsuichiba/images/site/og-image.jpg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="珍奇植物市場 Vol.10" />
+    <meta property="og:locale" content="ja_JP" />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="珍奇植物市場 Vol.10" />
+    <meta name="twitter:description" content="珍奇植物市場 Vol.10 の特設ページ。日程・会場・出店業者は決まり次第こちらでお知らせします。" />
+    <meta name="twitter:image" content="https://naoyaoshiro.github.io/chinkisyokubutsuichiba/images/site/og-image.jpg" />
+
+    <meta name="theme-color" content="#0F241A" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <!--
+      Montserrat は英字ディスプレイ用（ロゴ・Overline・日付）。
+      日本語は Noto 2書体。本文ゴシック / 見出し明朝。
+    -->
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800&family=Noto+Serif+JP:wght@700;900&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet" />
+
+    <!-- Google Analytics 4（測定ID: G-M0EZL6R2BQ）。Vite はインラインスクリプトを書き換えないのでビルド後もそのまま残る。 -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-M0EZL6R2BQ"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag() {
+        dataLayer.push(arguments);
+      }
+      gtag("js", new Date());
+      gtag("config", "G-M0EZL6R2BQ");
+    </script>
+  </head>
+
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+
+</html>

@@ -1,10 +1,15 @@
-# 🎪 BOTANI CARNIVAL 特設サイト
+# 🌵 珍奇植物市場 公式サイト
 
-**珍奇植物市場 Vol.9「BOTANI CARNIVAL」** の公式特設サイトです。
+沖縄の珍奇植物イベント **珍奇植物市場** のサイトです。
+ルートが開催回の一覧で、その配下に開催回ごとの特設ページがぶら下がります。
 
-> 植物が主役の、真夏の祭典。  
-> 2026年8月29日（土）・30日（日）11:00〜16:00  
-> 西原さわふじ広場
+```
+/                 開催一覧（過去回 + 次回）
+├── /vol9/        珍奇植物市場 Vol.9「BOTANI CARNIVAL」（2026年8月29日・30日）
+└── /vol10/       珍奇植物市場 Vol.10（準備中）
+```
+
+公開URL: **https://naoyaoshiro.github.io/chinkisyokubutsuichiba/**
 
 ---
 
@@ -15,146 +20,178 @@
 | フレームワーク | React 19 + TypeScript |
 | スタイリング | Tailwind CSS v4 |
 | UIコンポーネント | shadcn/ui + Radix UI |
-| アニメーション | Framer Motion |
-| ルーティング | Wouter |
-| ビルドツール | Vite |
+| ルーティング | wouter |
+| ビルドツール | Vite（ページごとのHTML + 共通バンドル） |
 | パッケージマネージャー | pnpm |
+| ホスティング | GitHub Pages（GitHub Actions で自動デプロイ） |
 
 ---
 
 ## 📁 ディレクトリ構成
 
 ```
-botani-carnival/
+chinkisyokubutsuichiba/
 ├── client/
-│   ├── public/           # favicon等の静的ファイル
+│   ├── index.html            # ルート（開催一覧）のHTML・OGP
+│   ├── vol9/index.html       # Vol.9 のHTML・OGP
+│   ├── vol10/index.html      # Vol.10 のHTML・OGP
+│   ├── public/images/
+│   │   ├── site/             # 開催回に依らない画像（favicon・OG・no_image）
+│   │   ├── vol9/             # Vol.9 のフライヤー・ロゴ・出店者画像
+│   │   └── vol10/            # Vol.10 の画像（これから）
 │   └── src/
-│       ├── components/
-│       │   ├── sections/ # 各セクションコンポーネント
-│       │   │   ├── HeroSection.tsx        # ヒーロー（フライヤー画像）
-│       │   │   ├── EventInfoSection.tsx   # イベント情報
-│       │   │   ├── BoothMapSection.tsx    # 会場配置図
-│       │   │   ├── ExhibitorsSection.tsx  # 出店業者紹介
-│       │   │   ├── SponsorsSection.tsx    # 協賛紹介
-│       │   │   ├── FaqSection.tsx         # よくある質問
-│       │   │   └── ContactSection.tsx     # お問い合わせ
-│       │   └── ui/       # shadcn/ui コンポーネント
+│       ├── data/
+│       │   ├── site.ts       # サイト共通設定（シリーズ名・主催者IG・公開URL）
+│       │   └── events/
+│       │       ├── types.ts  # EventData ほか開催回の型
+│       │       ├── index.ts  # 開催回の一覧（新しい回が先頭）
+│       │       ├── vol9/     # index.ts（イベント情報） / exhibitors.ts / boothMap.ts
+│       │       └── vol10/    # index.ts（準備中の雛形）
+│       ├── contexts/
+│       │   └── EventContext.tsx  # 表示中の開催回を各セクションに配る
 │       ├── pages/
-│       │   └── Home.tsx  # メインページ（1ページ構成）
-│       ├── App.tsx
-│       ├── main.tsx
-│       └── index.css     # グローバルスタイル・カラーパレット
-├── server/               # 静的ファイルサーバー（Express）
-└── shared/               # 共有型定義
+│       │   ├── Top.tsx       # ルート（開催一覧）
+│       │   ├── EventPage.tsx # 開催回ごとの特設ページ
+│       │   └── NotFound.tsx
+│       ├── components/
+│       │   ├── sections/     # Hero / EventInfo / BoothMap / Exhibitors / Faq / Contact
+│       │   └── ui/           # shadcn/ui
+│       ├── lib/
+│       │   ├── asset.ts      # base を考慮した静的アセットのパス解決
+│       │   ├── exhibitor.ts  # 出店者データのヘルパー（画像パス・日程バッジ）
+│       │   ├── sections.ts   # その回で出すセクションの判定
+│       │   ├── meta.ts       # SPA内移動時の <title> 更新
+│       │   └── analytics.ts  # GA4 カスタムイベント
+│       ├── App.tsx           # ルーティング
+│       └── index.css         # カラーパレット・共通スタイル
+├── server/                   # 静的ファイルサーバー（Express・ローカル確認用）
+└── shared/
 ```
 
----
+### 「1つのSPA + 開催回ごとのHTML」という構成について
 
-## 🎨 デザイン方針
-
-フライヤーのビジュアルトーンに合わせた **Tropical Fiesta** スタイルを採用しています。
-
-- **カラーパレット**：カーニバルグリーン・フィエスタオレンジ・マゼンタ・ゴールド
-- **フォント**：英語見出しに `Pacifico`、日本語に `Noto Serif JP`
-- **装飾モチーフ**：バンティングフラッグ・熱帯植物シルエット・スタンプ風バッジ
-
-詳細は [`ideas.md`](./ideas.md) を参照してください。
+コンポーネントは全開催回で共通（1つのバンドル）ですが、HTML だけ回ごとに分けています。
+集客の主経路が Instagram DM・ストーリーズ・LINE で、**シェアしたときにその回のフライヤーと
+タイトルが出ること**が重要なためです。OGP はクローラが HTML を直接読むので、SPA の中で
+書き換えても間に合いません。
 
 ---
 
-## 📄 ページ構成
+## ➕ 新しい開催回（Vol.11）を追加する手順
 
-1ページスクロール型のサイトです。
+1. `client/src/data/events/vol11/index.ts` を作る（`vol10/index.ts` が雛形）
+   - 出店者・ブースマップがあれば `exhibitors.ts` / `boothMap.ts` も同じフォルダに置いて import する
+2. 画像を `client/public/images/vol11/` に置く
+3. `client/src/data/events/index.ts` の `events` 配列の **先頭** に足す
+4. `client/vol11/index.html` を作る（`vol10/index.html` をコピーして title・description・canonical・og を直す）
+5. `vite.config.ts` の `pages` に `vol11: "client/vol11/index.html"` を足す
 
-| # | セクション | 内容 |
-|---|---|---|
-| 1 | ヒーロー | PC/SP別フライヤー画像（レスポンシブ切り替え） |
-| 2 | イベント情報 | 日時・場所・入場無料・キッチンカー情報 |
-| 3 | 会場配置図 | 8/29（土）・8/30（日）の2枚を縦並び表示 |
-| 4 | 出店業者紹介 | 日別セクション（各約30社）、カード＋モーダル表示 |
-| 5 | 協賛紹介 | 協賛3社のロゴ・リンク |
-| 6 | よくある質問 | アコーディオン形式のQ&A |
-| 7 | お問い合わせ | @tanikunchu へのInstagram DM誘導 |
+データが未確定の回は、該当セクション（フライヤー・ブースマップ・出店紹介・FAQ）が
+自動で出なくなります。`notice` に準備中の案内を書いておき、公開時に `null` に戻します。
+
+---
+
+## ✏️ 開催回の内容を直す
+
+画面に出る文言・日程・会場・画像は、すべて `client/src/data/events/<vol>/index.ts`（`EventData`）が
+持っています。コンポーネント側に直書きされた文言はありません。
+
+| 直したいもの | 場所 |
+|---|---|
+| イベント名・日程・会場・時間・入場など | `events/<vol>/index.ts` |
+| リード文・お知らせ | 同上（`lead` / `notice`） |
+| よくある質問 | 同上（`faqs`） |
+| 出店業者 | `events/<vol>/exhibitors.ts` |
+| ブース配置 | `events/<vol>/boothMap.ts` |
+| 主催者Instagram・制作クレジット・シリーズ名 | `client/src/data/site.ts` |
+| OGP・ページタイトル（シェア時に出るもの） | `client/<vol>/index.html` |
 
 ---
 
 ## 🚀 開発環境のセットアップ
 
 ```bash
-# 依存パッケージのインストール
 pnpm install
-
-# 開発サーバーの起動
 pnpm dev
-
-# ビルド
-pnpm build
 ```
 
 開発サーバーは `http://localhost:3000` で起動します。
+開催一覧は `/`、各回は `/vol9/` `/vol10/` です。
+
+```bash
+pnpm build    # 本番ビルド
+pnpm check    # 型チェック
+```
 
 ---
 
 ## 🌐 デプロイ（GitHub Pages）
 
-`main` ブランチに push すると、GitHub Actions（`.github/workflows/deploy.yml`）が自動でビルドして GitHub Pages に公開します。
-
-公開URL: **https://naoyaoshiro.github.io/botani-carnival/**
+`main` ブランチに push すると、GitHub Actions（`.github/workflows/deploy.yml`）が
+自動でビルドして GitHub Pages に公開します。
 
 ### 初回のみ必要な設定
 
-リポジトリの **Settings → Pages → Build and deployment → Source** を **「GitHub Actions」** に設定してください（一度だけ）。
+リポジトリの **Settings → Pages → Build and deployment → Source** を
+**「GitHub Actions」** に設定してください（一度だけ）。
 
 ### 仕組み・注意点
 
-- プロジェクトページはサブパス（`/botani-carnival/`）で配信されるため、Vite の `base` を本番ビルド時のみ `/botani-carnival/` に設定しています（`vite.config.ts`）。
-- 画像などの静的アセットは `asset()` ヘルパー、クライアントルーティングは wouter の `base` により、サブパスでも正しく解決されます。
-- 独自ドメインや別ホスト（ルート直下配信）に移す場合は、ビルド時に環境変数 `VITE_BASE_PATH=/` を指定すれば base を変更できます。
+- プロジェクトページはサブパス（`/chinkisyokubutsuichiba/`）で配信されるため、Vite の `base` を
+  本番ビルド時のみ `/chinkisyokubutsuichiba/` に設定しています（`vite.config.ts`）。
+- 画像などの静的アセットは `asset()` ヘルパー、クライアントルーティングは wouter の `base` により、
+  サブパスでも正しく解決されます。
+- 開催回ごとに実ファイル（`/vol9/index.html`）を書き出すので、URL は末尾スラッシュ付きになります。
+  wouter 側はこれを吸収しています（`App.tsx` の `useNormalizedLocation`）。
+- 存在しないパスは `404.html`（ルートHTMLのコピー）経由で SPA の 404 ページに落ちます。
+- **公開URL（リポジトリ名やドメイン）を変えるときは次の3か所を揃えること**
+  - `vite.config.ts` の `base`
+  - `client/**/index.html` の `canonical` / `og:url` / `og:image`
+  - `client/src/data/site.ts` の `url`
+- 独自ドメイン（ルート直下配信）に移す場合は、ビルド時に `VITE_BASE_PATH=/` を指定します。
 
 ---
 
-## 🖼 画像・アセットの管理
+## 🖼 画像の置き場所
 
-商品画像・ロゴ等の静的アセットは `client/public/images/` に配置します。コード側では、GitHub Pages のサブパス配信に対応するため `asset("images/ファイル名")`（`client/src/lib/asset.ts`）ヘルパー経由で参照しています。
+| 置き場所 | 中身 |
+|---|---|
+| `client/public/images/site/` | favicon・apple-touch-icon・シェア用OG画像・no_image（開催回に依らないもの） |
+| `client/public/images/<vol>/` | フライヤー（PC/SP）・OG画像・イベントロゴ・写真バナー |
+| `client/public/images/<vol>/exhibitors/<slug>/` | 出店者のアイコン（`icon.*`）と商品画像（`1.*`, `2.*`, …） |
 
-### 配置済みの画像
-
-- `logo-mark.webp`（ヘッダー・フッターのロゴ）
-- `flyer-pc.png`（ヒーロー画像 PC用）
-- `flyer-sp.jpg`（ヒーロー画像 SP用）
-- `booth-map.webp`（会場配置図。現在は 8/29・8/30 で同じ画像を表示）
-- `kitchen-car.webp`（キッチンカー紹介）
-
-### 未配置の画像（今後差し替え予定）
-
-- `oshiro_logo_f2699919.jpg`（おーしろ製作所アイコン）
-- `oshiro_product2_b2892d60.jpg` / `oshiro_product3_813b6ba1.jpg`（おーしろ製作所 商品画像）
-- `section-plants_f29bcf52.jpg`（出店業者カードの画像読み込み失敗時フォールバック）
-
-なお出店業者カードの商品画像（おーしろ製作所以外）は Unsplash の外部URLを暫定利用しています。
+コードからは `asset("images/...")`（`client/src/lib/asset.ts`）経由で参照します。
+GitHub Pages のサブパス配信に対応するためです。
 
 ---
 
-## 📝 出店業者データの更新方法
+## 📝 出店業者データ
 
-`client/src/components/sections/ExhibitorsSection.tsx` 内の `saturdayExhibitors` / `sundayExhibitors` 配列を編集してください。
-
-各出店者のデータ構造：
+`client/src/data/events/<vol>/exhibitors.ts` の配列を編集します。
+このファイルは `tmp/出店者情報.csv` と `tmp/出店者情報（画像）/` から生成しているため、
+再生成すると手動の編集は失われます。
 
 ```ts
 {
-  id: number,
-  name: string,           // 屋号
-  instagram: string,      // @アカウント名
-  category: Category,     // "plants" | "pots" | "goods" | "food" | "other"
-  description: string,    // 出店者コメント
-  icon: string,           // アイコン画像URL
-  images: string[],       // 商品画像URL（2〜3枚）
+  name: string,             // 屋号
+  instagram: string | null, // Instagramハンドル（@なし）。null ならリンクなし
+  description: string,      // 紹介文
+  days: number[],           // 出店日（1 = 1日目, 2 = 2日目）
+  slug: string | null,      // 画像フォルダ名（images/<vol>/exhibitors/<slug>/）
+  icon: string | null,      // アイコン画像のファイル名
+  images: string[],         // 商品画像のファイル名
+  kitchen: boolean,         // キッチンカーかどうか
 }
 ```
+
+`instagram` がブースマップ（`boothMap.ts`）の区画名と一致すると、
+区画に屋号・アイコン・詳細ダイアログが自動でつながります。
 
 ---
 
 ## 📬 お問い合わせ
 
-イベントに関するお問い合わせは [@tanikunchu](https://www.instagram.com/tanikunchu/) のInstagram DMまでお願いします。
+イベントに関するお問い合わせは [@tanikunchu](https://www.instagram.com/tanikunchu/) の
+Instagram DM までお願いします。
+
+サイト制作: [おーしろ製作所](https://www.instagram.com/oshiro_factory/)
